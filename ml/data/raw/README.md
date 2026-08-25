@@ -89,3 +89,70 @@ structurally present across the basket)
   ~51 days in Mar–May 2020, ~32 days in Apr–May 2015) that line up with known real
   NEPSE closures (COVID-19 lockdown, 2015 earthquake) rather than missing-data holes
   — not cross-checked against an authoritative NEPSE trading calendar.
+
+## Stock Basket Selection
+
+11 symbols, picked to cover four sectors (banking, hydropower, insurance,
+microfinance) rather than to maximize any single metric. The basket was chosen
+before today's data pull; the reasons below distinguish what today's data actually
+confirmed from what was a general sector-coverage judgment call going in.
+
+One piece of real evidence computed today, used below: **rows per year of listed
+history** (row count ÷ years between each symbol's earliest and latest date). NEPSE
+trades roughly 230–250 sessions/year, so a value close to that range means the
+symbol has data for close to every available session across its whole listed life —
+a rough trading-frequency proxy from the row data itself, **not** a computed
+turnover/volume ranking (no aggregation of `traded_amount` or `traded_quantity`
+across history was done today).
+
+**Banking**
+- **NABIL** — 3,496 rows over 15.3 years, ~229 rows/year (near-full session
+  coverage). One of Nepal's largest, longest-listed commercial banks; general
+  sector-coverage pick, corroborated today by the density figure.
+- **EBL** — 3,496 rows over 15.2 years, ~229 rows/year (near-full session
+  coverage). Same reasoning as NABIL: established commercial bank, density
+  figure today supports consistent trading.
+- **GBIME** — 2,752 rows over 13.9 years, ~198 rows/year — the lowest density of
+  the three banking picks. Sector-coverage pick (large commercial bank); today's
+  data shows somewhat less consistent daily coverage than NABIL/EBL, not
+  confirmed as highly liquid.
+
+**Hydropower**
+- **CHCL** — 4,446 rows over 20.2 years, ~220 rows/year (near-full session
+  coverage), the longest history in the whole basket. Sector-coverage pick,
+  density figure today supports it as an actively-traded, long-listed name.
+- **AHPC** — 3,746 rows over 16.7 years, ~224 rows/year (near-full session
+  coverage). Same reasoning: long-listed, density figure today supports
+  consistent trading.
+- **RIDI** — 914 rows over **only 4.0 years** (2022-08-15 onward), ~227 rows/year.
+  This is a general sector-coverage pick, not a liquidity pick — it's the
+  shortest history in the entire basket, barely clearing PLAN.md's 3-year
+  minimum. Session density is comparable to the other two hydropower names once
+  listed, but there are only 4 years of it. Flagged here explicitly, not just in
+  the caveats above.
+
+**Insurance**
+- **NLIC** — 3,346 rows over 15.4 years, ~217 rows/year. Sector-coverage pick
+  (established life insurer); density figure today supports regular trading,
+  somewhat below the ~230 seen in the strongest names.
+- **SICL** — 3,194 rows over 15.4 years, ~207 rows/year — the second-lowest
+  density in the basket after CBBL. Sector-coverage pick; today's data shows
+  less consistent daily coverage than most of the basket, not confirmed as
+  highly liquid.
+- **NLG** — 2,924 rows over 13.1 years, ~223 rows/year (near-full session
+  coverage). Sector-coverage pick; density figure today supports consistent
+  trading.
+
+**Microfinance**
+- **CBBL** — 3,230 rows over **21.5 years**, but only **~150 rows/year** — the
+  lowest density in the entire basket by a wide margin, despite having the
+  longest listed history. This is a sector-coverage pick (need a microfinance
+  representative); today's data does not support treating it as a liquid,
+  actively-traded name — it's the one basket member where the density figure
+  actively argues against a liquidity claim, not just fails to confirm one.
+- **SKBBL** — 2,879 rows over 12.9 years, ~224 rows/year (near-full session
+  coverage). Sector-coverage pick; density figure today supports consistent
+  trading.
+
+No NPR turnover figures or liquidity rankings beyond the session-density figures
+above were computed today, and none are claimed here.
