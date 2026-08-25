@@ -41,6 +41,8 @@ def load_raw() -> pd.DataFrame:
 
     combined = _drop_exact_duplicates(combined)
     combined = _resolve_near_duplicates(combined)
+    combined = _merge_ohlc_duplicate_dates(combined)
+    combined = _fix_listing_day_open(combined)
 
     combined = combined.sort_values(["symbol", "date"]).reset_index(drop=True)
     return combined
@@ -86,6 +88,46 @@ def _resolve_near_duplicates(df: pd.DataFrame) -> pd.DataFrame:
     if drop_indices:
         df = df.drop(index=drop_indices)
     return df.reset_index(drop=True)
+
+
+def _merge_ohlc_duplicate_dates(df: pd.DataFrame) -> pd.DataFrame:
+    merged_rows = []
+    drop_indices = []
+    for (symbol, date), group in df.groupby(["symbol", "date"], sort=False):
+        if len(group) < 2:
+            continue
+
+        first_row = group.iloc[0]
+        last_row = group.iloc[-1]
+        open_ = first_row["open"]
+        close = last_row["close"]
+
+        merged_rows.append({
+            "symbol": symbol,
+            "date": date,
+            "open": open_,
+            "high": group["high"].max(),
+            "low": group["low"].min(),
+            "close": close,
+            "per_change": (close - open_) / open_ * 100,
+            "traded_quantity": group["traded_quantity"].sum(),
+            "traded_amount": group["traded_amount"].sum(),
+        })
+        print(f"[ohlc-merge] {symbol} {date.date()}: merged {len(group)} rows into one bar")
+        drop_indices.extend(group.index.tolist())
+
+    if drop_indices:
+        df = df.drop(index=drop_indices)
+        df = pd.concat([df, pd.DataFrame(merged_rows, columns=COLUMNS)], ignore_index=True)
+    return df.reset_index(drop=True)
+
+
+def _fix_listing_day_open(df: pd.DataFrame) -> pd.DataFrame:
+    mask = (df["open"] == 0) & (df["high"] == df["low"]) & (df["low"] == df["close"])
+    for _, row in df[mask].iterrows():
+        print(f"[open-fix] {row['symbol']} {row['date'].date()}: open 0.0 -> {row['close']}")
+    df.loc[mask, "open"] = df.loc[mask, "close"]
+    return df
 
 
 def print_report(df: pd.DataFrame) -> None:
