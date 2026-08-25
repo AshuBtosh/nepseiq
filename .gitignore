@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+.ipynb_checkpoints/
+
+# Data — raw is committed (it's frozen and small); processed is regenerable
+ml/data/processed/*.csv
+ml/data/processed/*.parquet
+
+# Laravel
+backend/vendor/
+backend/.env
+backend/storage/*.key
+
+# React
+frontend/node_modules/
+frontend/build/
+frontend/dist/
+
+# OS
+.DS_Store
