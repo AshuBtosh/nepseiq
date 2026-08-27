@@ -28,6 +28,18 @@ features.NON_STATIONARY_FEATURES  [ADR-0008]
 
 Scaling: inside a sklearn Pipeline, so the scaler is fit on training-fold data
 only and never sees the test fold  [ADR-0003 §3].
+
+DAY 5 ADDITION
+--------------
+This is the same Day 4 walk-forward loop, unmodified in split logic, model
+definitions, or hyperparameters. The only change is that out-of-fold predictions
+are now also persisted per-row (symbol, date, fold, model, y_true, proba) to
+reports/day5_oof_predictions.csv, instead of only being pooled in-memory for the
+confusion-matrix/ROC plots. A backtest needs to know which prediction belongs to
+which symbol on which date; fold-level aggregate metrics alone cannot produce an
+equity curve. Nothing about what is trained, split, or scored has changed --
+re-running this file should reproduce the Day 4 aggregate numbers exactly. If it
+doesn't, that's a red flag to stop and investigate, not paper over.
 """
 
 from __future__ import annotations
@@ -228,7 +240,8 @@ def run_target(df: pd.DataFrame, feat_cols: list[str], target: str, horizon: int
 
     models = build_models()
     fold_rows = []
-    oof = {name: {"y": [], "p": []} for name in models}
+    oof = {name: {"y": [], "p": [], "symbol": [], "date": [], "fold": []}
+           for name in models}
 
     for fold in walk_forward_folds(data["date"], horizon=horizon):
         tr = data[(data["date"] >= fold.train_start)
@@ -257,6 +270,9 @@ def run_target(df: pd.DataFrame, feat_cols: list[str], target: str, horizon: int
 
             oof[name]["y"].append(y_te)
             oof[name]["p"].append(proba)
+            oof[name]["symbol"].append(te["symbol"].values)
+            oof[name]["date"].append(te["date"].values)
+            oof[name]["fold"].append(np.full(len(y_te), fold.index))
 
             row = {
                 "target": target,
@@ -281,7 +297,7 @@ def run_target(df: pd.DataFrame, feat_cols: list[str], target: str, horizon: int
     folds_df = pd.DataFrame(fold_rows)
     if folds_df.empty:
         print("[error] no folds ran.")
-        return folds_df, pd.DataFrame()
+        return folds_df, pd.DataFrame(), pd.DataFrame()
 
     summary = (folds_df.groupby("model")
                [["accuracy", "precision", "recall", "f1", "roc_auc"]]
@@ -306,8 +322,44 @@ def run_target(df: pd.DataFrame, feat_cols: list[str], target: str, horizon: int
         print("Do not proceed. Investigate before recording these numbers.")
         print("!" * 78)
 
+    oof_df = _build_oof_dataframe(oof, target)
     _export_plots(oof, models, feat_cols, data, target, horizon)
-    return folds_df, summary
+    return folds_df, summary, oof_df
+
+
+# --------------------------------------------------------------------------
+# Day 5 addition: per-row OOF prediction export (needed by backtest.py)
+# --------------------------------------------------------------------------
+
+def _build_oof_dataframe(oof: dict, target: str) -> pd.DataFrame:
+    """
+    Assemble per-row out-of-fold predictions across all folds and models for one
+    target. Fold-level aggregate metrics (day4_fold_metrics.csv) cannot drive a
+    backtest, because position sizing and transaction costs are computed per
+    (symbol, date), not per fold. This is the same oof["y"]/oof["p"] data that
+    already fed the confusion-matrix and ROC plots — here it's additionally kept
+    with its symbol/date/fold identity and written to disk instead of being
+    discarded after plotting.
+    """
+    rows = []
+    for name, arrs in oof.items():
+        if not arrs["y"]:
+            continue
+        y = np.concatenate(arrs["y"])
+        p = np.concatenate(arrs["p"])
+        sym = np.concatenate(arrs["symbol"])
+        dt = np.concatenate(arrs["date"])
+        fold = np.concatenate(arrs["fold"])
+        rows.append(pd.DataFrame({
+            "target": target,
+            "model": name,
+            "fold": fold,
+            "symbol": sym,
+            "date": dt,
+            "y_true": y,
+            "proba": p,
+        }))
+    return pd.concat(rows, ignore_index=True) if rows else pd.DataFrame()
 
 
 # --------------------------------------------------------------------------
@@ -396,11 +448,12 @@ def main():
         print("\n[inspect] stopping before training as requested.")
         return
 
-    all_folds, all_summaries = [], []
+    all_folds, all_summaries, all_oof = [], [], []
     for target, horizon in TARGETS.items():
-        folds_df, summary = run_target(df, feat_cols, target, horizon)
+        folds_df, summary, oof_df = run_target(df, feat_cols, target, horizon)
         all_folds.append(folds_df)
         all_summaries.append(summary)
+        all_oof.append(oof_df)
 
     os.makedirs(REPORTS_DIR, exist_ok=True)
     pd.concat(all_folds).to_csv(
@@ -411,8 +464,14 @@ def main():
         json.dump({"n_features": len(feat_cols), "features": feat_cols,
                    "excluded_adr_0008": sorted(features.NON_STATIONARY_FEATURES)}, f, indent=2)
 
+    oof_all = pd.concat(all_oof, ignore_index=True)
+    oof_all.to_csv(f"{REPORTS_DIR}/day5_oof_predictions.csv", index=False)
+    print(f"[export] {len(oof_all)} per-row OOF predictions -> "
+          f"{REPORTS_DIR}/day5_oof_predictions.csv")
+
     print("\n[done] metrics -> reports/day4_fold_metrics.csv, "
-          "reports/day4_model_comparison.csv")
+          "reports/day4_model_comparison.csv, "
+          "reports/day5_oof_predictions.csv")
 
 
 if __name__ == "__main__":

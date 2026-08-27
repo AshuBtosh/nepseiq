@@ -1,0 +1,53 @@
+{
+  "model_name": "RandomForest",
+  "target": "target_1d",
+  "horizon_sessions": 1,
+  "frozen_at_utc": "2026-08-27T07:24:35.054361+00:00",
+  "sklearn_pipeline": [
+    "StandardScaler",
+    "RandomForestClassifier"
+  ],
+  "hyperparameters": {
+    "n_estimators": 300,
+    "max_depth": 8,
+    "min_samples_leaf": 50,
+    "n_jobs": -1,
+    "random_state": 42
+  },
+  "n_features": 40,
+  "training_rows_full_history": 32862,
+  "training_date_range": {
+    "start": "2006-09-03",
+    "end": "2026-08-17"
+  },
+  "IMPORTANT_full_history_refit_has_no_holdout": "This artifact was refit on ALL available rows per PLAN.md Day 5 ('retrain on full history, freeze'). It has no held-out test fold and no accuracy/AUC number is computed from this fit. The only honest performance numbers for this model are the Day 4 walk-forward metrics below, measured on a DIFFERENT (earlier, less-fitted) version of this same model configuration.",
+  "day4_walk_forward_metrics_source": "reports\\day4_model_comparison.csv",
+  "day4_walk_forward_metrics": {
+    "model": "RandomForest",
+    "accuracy_mean": 0.5799,
+    "accuracy_std": 0.0242,
+    "precision_mean": 0.5236,
+    "precision_std": 0.0354,
+    "recall_mean": 0.1449,
+    "recall_std": 0.0365,
+    "f1_mean": 0.2254,
+    "f1_std": 0.0467,
+    "roc_auc_mean": 0.5495,
+    "roc_auc_std": 0.0205,
+    "baseline": 0.5611,
+    "acc_minus_baseline": 0.0188,
+    "target": "target_1d"
+  },
+  "day4_walk_forward_baseline": 0.5611,
+  "day5_backtest_source": "reports\\day5_threshold_sensitivity.csv",
+  "excluded_data_anomalies": [
+    {
+      "symbol": "NLIC",
+      "date": "2018-03-27",
+      "reason": "-30.6% close-to-close on consecutive sessions; exceeds any real NEPSE circuit breaker; treated as an unadjusted corporate action per the accepted PROGRESS.md Parking Lot limitation. Excluded from the Day 5 backtest only -- NOT excluded from this training fit, since target_1d/features.py were already frozen upstream of Day 5 and this script does not reopen Day 3/4 decisions."
+    }
+  ],
+  "not_served": {
+    "target_5d": "No model beat baseline in Day 4 walk-forward validation (best: RandomForest 54.08% vs 54.31% baseline). Reported as a negative finding per ADR-0009, not frozen or served."
+  }
+}
